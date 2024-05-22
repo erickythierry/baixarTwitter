@@ -54,10 +54,13 @@ def baixar_video():
     delete_old_files()
     data = request.json
     video_url = data.get('url')
+    
+    if video_url and 'x.com' in video_url:
+        video_url = video_url.replace('x.com', 'twitter.com')
+    
     videoRandomID = str(uuid.uuid4()).rsplit('-', 1)[-1]
-
     if video_url:
-        if 'twitter.com' in video_url or 'x.com' in video_url:
+        if 'twitter.com' in video_url:
             try:
                 download_video(video_url, videoRandomID)
                 file_url = f"{request.host_url}download/{videoRandomID}.mp4"
