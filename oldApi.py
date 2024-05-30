@@ -10,10 +10,6 @@ load_dotenv()
 app = Flask(__name__)
 app.config['DOWNLOAD_FOLDER'] = 'downloads'
 
-# Variável global para a instância do yt_dlp
-ydl_instance = None
-
-
 def delete_old_files():
     folder_path = 'downloads'
     file_extension = '.mp4'
@@ -33,34 +29,18 @@ def delete_old_files():
                 print(f"Erro ao excluir o arquivo '{filename}': {str(e)}")
 
 
-def get_ydl_instance():
-    global ydl_instance
-    if ydl_instance is None:
-        print('criando instancia')
-        ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            'merge_output_format': 'mp4',
-            'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], '%(id)s.%(ext)s')
-        }
-        ydl_instance = yt_dlp.YoutubeDL(ydl_opts)
-    return ydl_instance
-
-
 def download_video(url, videoRandomID):
-    ydl = get_ydl_instance()
-    try:
+
+    ydl_opts = {
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'merge_output_format': 'mp4',
+        'username': os.getenv("TWITTER_USERNAME"),
+        'password': os.getenv("TWITTER_PASSWORD"),
+        'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], videoRandomID+'.mp4')
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    except Exception as e:
-        print(f"Erro ao baixar vídeo: {str(e)}")
-        # Refaz login e cria nova instância do yt_dlp
-        ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            'merge_output_format': 'mp4',
-            'cookiefile': os.getenv("COOKIES_PATH"),
-            'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], '%(id)s.%(ext)s')
-        }
-        ydl_instance = yt_dlp.YoutubeDL(ydl_opts)  # Atualiza a instância global
-        ydl_instance.download([url])
 
 
 @app.route('/', methods=['GET'])
