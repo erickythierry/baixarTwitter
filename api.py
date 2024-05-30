@@ -40,27 +40,34 @@ def get_ydl_instance():
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'merge_output_format': 'mp4',
-            'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], '%(id)s.%(ext)s')
+            'username': os.getenv("TWITTER_USERNAME"),
+            'password': os.getenv("TWITTER_PASSWORD"),
+            'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], '%(id)s.%(ext)s'),
         }
         ydl_instance = yt_dlp.YoutubeDL(ydl_opts)
     return ydl_instance
 
 
-def download_video(url, videoRandomID):
+def download_video(url):
     ydl = get_ydl_instance()
     try:
-        ydl.download([url])
+        result = ydl.extract_info(url, download=True)
+        return result['id'] + ".mp4"
+        
     except Exception as e:
         print(f"Erro ao baixar vídeo: {str(e)}")
         # Refaz login e cria nova instância do yt_dlp
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'merge_output_format': 'mp4',
-            'cookiefile': os.getenv("COOKIES_PATH"),
-            'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], '%(id)s.%(ext)s')
+            'username': os.getenv("TWITTER_USERNAME"),
+            'password': os.getenv("TWITTER_PASSWORD"),
+            'outtmpl': os.path.join(app.config['DOWNLOAD_FOLDER'], '%(id)s.%(ext)s'),
         }
         ydl_instance = yt_dlp.YoutubeDL(ydl_opts)  # Atualiza a instância global
-        ydl_instance.download([url])
+        result = ydl_instance.extract_info(url, download=True)
+        return result['id'] + ".mp4"
+        
 
 
 @app.route('/', methods=['GET'])
@@ -77,12 +84,11 @@ def baixar_video():
     if video_url and 'x.com' in video_url:
         video_url = video_url.replace('x.com', 'twitter.com')
     
-    videoRandomID = str(uuid.uuid4()).rsplit('-', 1)[-1]
     if video_url:
         if 'twitter.com' in video_url:
             try:
-                download_video(video_url, videoRandomID)
-                file_url = f"{request.host_url}download/{videoRandomID}.mp4"
+                filename = download_video(video_url)
+                file_url = f"{request.host_url}download/{filename}"
                 return jsonify({'file': file_url})
             except:
                 return jsonify({'error': 'erro ao baixar'}), 400
